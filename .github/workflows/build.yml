@@ -47,6 +47,22 @@ jobs:
             }
           }
 
+      - name: Check icon files
+        shell: pwsh
+        working-directory: ${{ env.PROJECT_DIR }}
+        run: |
+          foreach ($f in @("build.rs", "assets/icon.ico", "assets/icon_64.rgba", "assets/terre.rgba", "assets/air.rgba", "assets/eau.rgba", "assets/feu.rgba", "assets/pousser.rgba")) {
+            if (-not (Test-Path $f)) {
+              Write-Host "::error::Fichier manquant dans le depot : $f (a placer a cote de Cargo.toml)"
+              $missing = $true
+            }
+          }
+          if ($missing) { exit 1 }
+          if (-not (Select-String -Path Cargo.toml -Pattern "winresource" -Quiet)) {
+            Write-Host "::error::Cargo.toml ne contient pas [build-dependencies] winresource"
+            exit 1
+          }
+
       - uses: dtolnay/rust-toolchain@stable
 
       - uses: Swatinem/rust-cache@v2
