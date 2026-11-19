@@ -16,24 +16,42 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Locate Cargo.toml
+        shell: pwsh
+        run: |
+          $f = Get-ChildItem -Recurse -Filter Cargo.toml -File |
+               Where-Object { $_.FullName -notmatch '[\\/]target[\\/]' } |
+               Select-Object -First 1
+          if (-not $f) {
+            Write-Host "::error::Aucun Cargo.toml dans le depot. Pousse aussi Cargo.toml et le dossier src/ (pas seulement .github)."
+            Get-ChildItem -Recurse -File | Select-Object -ExpandProperty FullName
+            exit 1
+          }
+          Write-Host "Projet trouve dans : $($f.DirectoryName)"
+          "PROJECT_DIR=$($f.DirectoryName)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
       - uses: dtolnay/rust-toolchain@stable
 
       - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: ${{ env.PROJECT_DIR }}
 
       - name: Tests
+        working-directory: ${{ env.PROJECT_DIR }}
         run: cargo test --release
 
       - name: Build
+        working-directory: ${{ env.PROJECT_DIR }}
         run: cargo build --release
 
       - name: Upload exe
         uses: actions/upload-artifact@v4
         with:
           name: kimbo-windows
-          path: target/release/kimbo.exe
+          path: ${{ env.PROJECT_DIR }}/target/release/kimbo.exe
 
       - name: Publish release (tags v*)
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: target/release/kimbo.exe
+          files: ${{ env.PROJECT_DIR }}/target/release/kimbo.exe
