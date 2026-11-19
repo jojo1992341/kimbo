@@ -25,7 +25,6 @@ impl Default for State {
 pub struct Res {
     pub me: u8,
     pub safe: u8,
-    pub duo: &'static str,
     /// true = Air / Feu, false = Terre / Eau
     pub air_feu: bool,
     pub k2: u8,
@@ -58,7 +57,6 @@ pub fn compute(s: &State) -> Option<Res> {
         me,
         safe,
         air_feu: same,
-        duo: if same { "Air / Feu" } else { "Terre / Eau" },
         k2,
         d2,
         pull_k,
@@ -79,7 +77,7 @@ mod tests {
         assert_eq!(r.me, 1);
         assert_eq!(r.safe, 0); // se placer sur Claire
         assert_eq!((r.k2, r.d2), (1, 1));
-        assert_eq!(r.duo, "Air / Feu");
+        assert!(r.air_feu); // Air / Feu
     }
 
     #[test]
