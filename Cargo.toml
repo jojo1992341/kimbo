@@ -1,0 +1,17 @@
+[package]
+name = "kimbo"
+version = "1.0.0"
+edition = "2021"
+description = "Kimbo : sur quelle couleur de case me placer ?"
+
+[dependencies]
+eframe = { version = "=0.31.1", default-features = false, features = ["wgpu", "default_fonts"] }
+# Active explicitement les backends DirectX 12 et OpenGL (même version que celle d'eframe 0.31)
+wgpu = { version = "24", default-features = false, features = ["dx12", "gles", "wgsl"] }
+
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+strip = true
+panic = "abort"
