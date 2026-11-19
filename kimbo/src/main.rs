@@ -220,7 +220,12 @@ fn main() -> eframe::Result {
             .with_title("Kimbo : sur quelle case me placer ?")
             .with_inner_size([440.0, 560.0])
             .with_min_inner_size([380.0, 480.0])
-            .with_always_on_top(), // toujours au-dessus des autres fenêtres
+            .with_always_on_top() // toujours au-dessus des autres fenêtres
+            .with_icon(egui::IconData {
+                rgba: include_bytes!("../assets/icon_64.rgba").to_vec(),
+                width: 64,
+                height: 64,
+            }),
         renderer: eframe::Renderer::Wgpu,
         wgpu_options: {
             // DX12 si disponible, sinon OpenGL
