@@ -18,7 +18,7 @@ fn carre(ui: &mut egui::Ui, c: u8, taille: f32) {
     let (rect, _) = ui.allocate_exact_size(Vec2::splat(taille), Sense::hover());
     ui.painter().rect_filled(rect, 4.0, couleur(c));
     ui.painter()
-        .rect_stroke(rect, 4.0, Stroke::new(1.0, Color32::from_black_alpha(90)), egui::StrokeKind::Inside);
+        .rect_stroke(rect, 4.0, Stroke::new(1.0_f32, Color32::from_black_alpha(90)), egui::StrokeKind::Inside);
 }
 
 fn compteur(ui: &mut egui::Ui, val: &mut u32) {
@@ -124,7 +124,7 @@ fn resultat(ui: &mut egui::Ui, s: &State) {
     let orange = Color32::from_rgb(0xe8, 0xa3, 0x3a);
 
     let Some(r) = compute(s) else {
-        egui::Frame::group(ui.style()).stroke(Stroke::new(2.0, orange)).show(ui, |ui| {
+        egui::Frame::group(ui.style()).stroke(Stroke::new(2.0_f32, orange)).show(ui, |ui| {
             ui.set_width(ui.available_width());
             ui.vertical_centered(|ui| {
                 ui.label(RichText::new("Infos incohérentes").size(22.0).strong());
@@ -143,7 +143,7 @@ fn resultat(ui: &mut egui::Ui, s: &State) {
         format!("{}{}{}", if k { "Kimbo" } else { "" }, if k && d { " et du " } else { "" }, if d { "Disciple" } else { "" })
     };
 
-    egui::Frame::group(ui.style()).stroke(Stroke::new(2.0, bordure)).show(ui, |ui| {
+    egui::Frame::group(ui.style()).stroke(Stroke::new(2.0_f32, bordure)).show(ui, |ui| {
         ui.set_width(ui.available_width());
         ui.vertical_centered(|ui| {
             ui.horizontal(|ui| {
@@ -222,9 +222,14 @@ fn main() -> eframe::Result {
             .with_min_inner_size([380.0, 480.0])
             .with_always_on_top(), // toujours au-dessus des autres fenêtres
         renderer: eframe::Renderer::Wgpu,
-        wgpu_options: eframe::egui_wgpu::WgpuConfiguration {
-            supported_backends: choisir_backend(), // DX12, repli automatique sur OpenGL
-            ..Default::default()
+        wgpu_options: {
+            // DX12 si disponible, sinon OpenGL
+            let mut setup = eframe::egui_wgpu::WgpuSetupCreateNew::default();
+            setup.instance_descriptor.backends = choisir_backend();
+            eframe::egui_wgpu::WgpuConfiguration {
+                wgpu_setup: eframe::egui_wgpu::WgpuSetup::CreateNew(setup),
+                ..Default::default()
+            }
         },
         ..Default::default()
     };
