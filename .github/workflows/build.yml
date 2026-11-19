@@ -30,6 +30,23 @@ jobs:
           Write-Host "Projet trouve dans : $($f.DirectoryName)"
           "PROJECT_DIR=$($f.DirectoryName)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
+      - name: Check source layout
+        shell: pwsh
+        working-directory: ${{ env.PROJECT_DIR }}
+        run: |
+          if (-not (Test-Path src/main.rs)) {
+            if (Test-Path main.rs) {
+              Write-Host "main.rs trouve a la racine : deplacement dans src/"
+              New-Item -ItemType Directory -Force src | Out-Null
+              Move-Item main.rs src/main.rs
+              if (Test-Path logic.rs) { Move-Item logic.rs src/logic.rs }
+            } else {
+              Write-Host "::error::src/main.rs est introuvable. Fichiers presents :"
+              Get-ChildItem -Recurse -File | Where-Object { $_.FullName -notmatch '[\\/]\.git[\\/]' } | Select-Object -ExpandProperty FullName
+              exit 1
+            }
+          }
+
       - uses: dtolnay/rust-toolchain@stable
 
       - uses: Swatinem/rust-cache@v2
