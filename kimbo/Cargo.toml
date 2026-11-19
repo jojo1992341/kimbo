@@ -6,8 +6,8 @@ description = "Kimbo : sur quelle couleur de case me placer ?"
 
 [dependencies]
 eframe = { version = "=0.31.1", default-features = false, features = ["wgpu", "default_fonts"] }
-# Active explicitement les backends DirectX 12 et OpenGL (même version que celle d'eframe 0.31)
-wgpu = { version = "24", default-features = false, features = ["dx12", "gles", "wgsl"] }
+# Active DirectX 12 (le backend OpenGL est activé automatiquement sous Windows par wgpu 24)
+wgpu = { version = "24", default-features = false, features = ["dx12", "wgsl"] }
 
 [profile.release]
 opt-level = "s"
