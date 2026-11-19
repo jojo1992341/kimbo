@@ -5,6 +5,8 @@ mod logic;
 use eframe::egui::{self, Color32, RichText, Sense, Stroke, Vec2};
 use eframe::wgpu;
 use logic::{compute, State};
+use std::sync::Arc;
+use std::time::{Duration, Instant};
 
 const CLAIRE: Color32 = Color32::from_rgb(0xef, 0xe6, 0xc4);
 const FONCEE: Color32 = Color32::from_rgb(0xa8, 0x94, 0x60);
@@ -31,12 +33,39 @@ fn compteur(ui: &mut egui::Ui, val: &mut u32) {
     }
 }
 
+/// Rend à Windows les pages mémoire inutilisées (réduit la RAM affichée par le Gestionnaire des tâches).
+#[cfg(windows)]
+fn liberer_memoire() {
+    use windows_sys::Win32::System::{ProcessStatus::K32EmptyWorkingSet, Threading::GetCurrentProcess};
+    unsafe {
+        K32EmptyWorkingSet(GetCurrentProcess());
+    }
+}
+#[cfg(not(windows))]
+fn liberer_memoire() {}
+
 struct App {
     s: State,
+    debut: Instant,
+    purge_faite: bool,
+    avait_focus: bool,
 }
 
 impl eframe::App for App {
     fn update(&mut self, ctx: &egui::Context, _: &mut eframe::Frame) {
+        // Purge mémoire : 1,5 s après le démarrage, puis à chaque perte de focus
+        let focus = ctx.input(|i| i.viewport().focused.unwrap_or(true));
+        if (!self.purge_faite && self.debut.elapsed() > Duration::from_millis(1500))
+            || (self.avait_focus && !focus)
+        {
+            liberer_memoire();
+            self.purge_faite = true;
+        }
+        self.avait_focus = focus;
+        if !self.purge_faite {
+            ctx.request_repaint_after(Duration::from_millis(1600));
+        }
+
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.heading("Kimbo : sur quelle couleur de case me placer ?");
             ui.add_space(6.0);
@@ -228,11 +257,28 @@ fn main() -> eframe::Result {
             }),
         renderer: eframe::Renderer::Wgpu,
         wgpu_options: {
-            // DX12 si disponible, sinon OpenGL
             let mut setup = eframe::egui_wgpu::WgpuSetupCreateNew::default();
+            // DX12 si disponible, sinon OpenGL
             setup.instance_descriptor.backends = choisir_backend();
+            // GPU économe (intégré si présent) : moins de mémoire pilote
+            setup.power_preference = wgpu::PowerPreference::LowPower;
+            // Allocation GPU orientée mémoire plutôt que performance
+            setup.device_descriptor = Arc::new(|adapter| {
+                let base = if adapter.get_info().backend == wgpu::Backend::Gl {
+                    wgpu::Limits::downlevel_webgl2_defaults()
+                } else {
+                    wgpu::Limits::default()
+                };
+                wgpu::DeviceDescriptor {
+                    label: Some("kimbo device"),
+                    required_features: wgpu::Features::default(),
+                    required_limits: wgpu::Limits { max_texture_dimension_2d: 8192, ..base },
+                    memory_hints: wgpu::MemoryHints::MemoryUsage,
+                }
+            });
             eframe::egui_wgpu::WgpuConfiguration {
                 wgpu_setup: eframe::egui_wgpu::WgpuSetup::CreateNew(setup),
+                desired_maximum_frame_latency: Some(1), // moins de buffers d'affichage
                 ..Default::default()
             }
         },
@@ -241,6 +287,13 @@ fn main() -> eframe::Result {
     eframe::run_native(
         "Kimbo",
         options,
-        Box::new(|_cc| Ok(Box::new(App { s: State::default() }))),
+        Box::new(|_cc| {
+            Ok(Box::new(App {
+                s: State::default(),
+                debut: Instant::now(),
+                purge_faite: false,
+                avait_focus: true,
+            }))
+        }),
     )
 }
