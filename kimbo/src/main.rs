@@ -242,7 +242,13 @@ fn resultat(ui: &mut egui::Ui, s: &State, ic: &Icones) {
                     element(ui, &ic.eau, "Eau");
                 }
             });
-            ui.add_space(4.0);
+            ui.add_space(2.0);
+            ui.horizontal_wrapped(|ui| {
+                ui.weak("Le Disciple posera ses glyphes sur les cases");
+                carre(ui, r.glyph, 12.0);
+                ui.weak(NOMS[r.glyph as usize].to_lowercase());
+            });
+            ui.add_space(2.0);
             ui.horizontal_wrapped(|ui| {
                 ui.weak("Après leurs déplacements : Kimbo");
                 carre(ui, r.k2, 12.0);
