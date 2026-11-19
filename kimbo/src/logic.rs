@@ -26,6 +26,8 @@ pub struct Res {
     pub me: u8,
     pub safe: u8,
     pub duo: &'static str,
+    /// true = Air / Feu, false = Terre / Eau
+    pub air_feu: bool,
     pub k2: u8,
     pub d2: u8,
     pub pull_k: bool,
@@ -55,6 +57,7 @@ pub fn compute(s: &State) -> Option<Res> {
     Some(Res {
         me,
         safe,
+        air_feu: same,
         duo: if same { "Air / Feu" } else { "Terre / Eau" },
         k2,
         d2,

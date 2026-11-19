@@ -44,8 +44,52 @@ fn liberer_memoire() {
 #[cfg(not(windows))]
 fn liberer_memoire() {}
 
+const ICONE_PX: usize = 55;
+
+struct Icones {
+    terre: egui::TextureHandle,
+    air: egui::TextureHandle,
+    eau: egui::TextureHandle,
+    feu: egui::TextureHandle,
+    pousser: egui::TextureHandle,
+}
+
+fn charger(ctx: &egui::Context, nom: &str, rgba: &[u8]) -> egui::TextureHandle {
+    let img = egui::ColorImage::from_rgba_unmultiplied([ICONE_PX, ICONE_PX], rgba);
+    ctx.load_texture(nom, img, egui::TextureOptions::LINEAR)
+}
+
+impl Icones {
+    fn new(ctx: &egui::Context) -> Self {
+        Self {
+            terre: charger(ctx, "terre", include_bytes!("../assets/terre.rgba")),
+            air: charger(ctx, "air", include_bytes!("../assets/air.rgba")),
+            eau: charger(ctx, "eau", include_bytes!("../assets/eau.rgba")),
+            feu: charger(ctx, "feu", include_bytes!("../assets/feu.rgba")),
+            pousser: charger(ctx, "pousser", include_bytes!("../assets/pousser.rgba")),
+        }
+    }
+}
+
+fn icone(ui: &mut egui::Ui, tex: &egui::TextureHandle, taille: f32) {
+    ui.add(egui::Image::new(egui::load::SizedTexture::new(tex.id(), Vec2::splat(taille))));
+}
+
+/// Un élément : icône + nom, dans une cellule de largeur fixe
+fn element(ui: &mut egui::Ui, tex: &egui::TextureHandle, nom: &str) {
+    ui.allocate_ui_with_layout(
+        Vec2::new(100.0, 40.0),
+        egui::Layout::left_to_right(egui::Align::Center),
+        |ui| {
+            icone(ui, tex, 36.0);
+            ui.label(RichText::new(nom).size(20.0).strong());
+        },
+    );
+}
+
 struct App {
     s: State,
+    icones: Icones,
     debut: Instant,
     purge_faite: bool,
     avait_focus: bool,
@@ -142,12 +186,12 @@ impl eframe::App for App {
             });
 
             ui.add_space(8.0);
-            resultat(ui, &self.s);
+            resultat(ui, &self.s, &self.icones);
         });
     }
 }
 
-fn resultat(ui: &mut egui::Ui, s: &State) {
+fn resultat(ui: &mut egui::Ui, s: &State, ic: &Icones) {
     let vert = Color32::from_rgb(0x4c, 0xaf, 0x50);
     let rouge = Color32::from_rgb(0xd9, 0x53, 0x4f);
     let orange = Color32::from_rgb(0xe8, 0xa3, 0x3a);
@@ -196,8 +240,20 @@ fn resultat(ui: &mut egui::Ui, s: &State) {
             ui.horizontal_wrapped(|ui| {
                 ui.weak("Ta case :");
                 carre(ui, r.me, 12.0);
-                ui.weak(format!("· Frappe le Kimbo en {}", r.duo));
             });
+            ui.add_space(6.0);
+            ui.label(RichText::new("Frappe le Kimbo en").size(16.0).strong());
+            ui.horizontal(|ui| {
+                ui.add_space((ui.available_width() / 2.0 - 104.0).max(0.0));
+                if r.air_feu {
+                    element(ui, &ic.air, "Air");
+                    element(ui, &ic.feu, "Feu");
+                } else {
+                    element(ui, &ic.terre, "Terre");
+                    element(ui, &ic.eau, "Eau");
+                }
+            });
+            ui.add_space(4.0);
             ui.horizontal_wrapped(|ui| {
                 ui.weak("Après leurs déplacements : Kimbo");
                 carre(ui, r.k2, 12.0);
@@ -205,7 +261,11 @@ fn resultat(ui: &mut egui::Ui, s: &State) {
                 carre(ui, r.d2, 12.0);
             });
             if r.statue_push {
-                ui.weak("Statue : pousse le Kimbo d’un nombre impair de cases pour qu’il soit sur un glyphe.");
+                ui.horizontal_wrapped(|ui| {
+                    icone(ui, &ic.pousser, 30.0);
+                    ui.label(RichText::new("Pousse le Kimbo d’un nombre impair de cases").strong());
+                    ui.weak("pour qu’il soit sur un glyphe.");
+                });
             }
             if r.pulls > 0 {
                 let c = qui(r.pull_k, r.pull_d);
@@ -247,8 +307,8 @@ fn main() -> eframe::Result {
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
             .with_title("Kimbo : sur quelle case me placer ?")
-            .with_inner_size([440.0, 560.0])
-            .with_min_inner_size([380.0, 480.0])
+            .with_inner_size([440.0, 640.0])
+            .with_min_inner_size([380.0, 540.0])
             .with_always_on_top() // toujours au-dessus des autres fenêtres
             .with_icon(egui::IconData {
                 rgba: include_bytes!("../assets/icon_64.rgba").to_vec(),
@@ -287,9 +347,10 @@ fn main() -> eframe::Result {
     eframe::run_native(
         "Kimbo",
         options,
-        Box::new(|_cc| {
+        Box::new(|cc| {
             Ok(Box::new(App {
                 s: State::default(),
+                icones: Icones::new(&cc.egui_ctx),
                 debut: Instant::now(),
                 purge_faite: false,
                 avait_focus: true,
