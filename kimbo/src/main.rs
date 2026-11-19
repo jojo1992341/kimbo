@@ -144,17 +144,6 @@ impl eframe::App for App {
                         }
                     });
                 });
-                ui.horizontal(|ui| {
-                    ui.label("Glyphes déclenchés au tour d’avant ?");
-                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                        if ui.selectable_label(self.s.o == 0, "Non").clicked() {
-                            self.s.o = 0;
-                        }
-                        if ui.selectable_label(self.s.o == 1, "Oui").clicked() {
-                            self.s.o = 1;
-                        }
-                    });
-                });
                 if self.s.idol {
                     ui.separator();
                     ui.horizontal(|ui| {

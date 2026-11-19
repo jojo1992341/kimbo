@@ -6,8 +6,6 @@ pub struct State {
     pub k: u8,
     /// Couleur de la case du Disciple
     pub d: u8,
-    /// Glyphes déclenchés au tour d'avant (1 = oui)
-    pub o: u8,
     pub idol: bool,
     pub statue: bool,
     /// Ma case (utilisée seulement sans l'idole)
@@ -18,7 +16,7 @@ pub struct State {
 
 impl Default for State {
     fn default() -> Self {
-        Self { k: 0, d: 0, o: 1, idol: true, statue: false, m: 0, dk: 3, dd: 3 }
+        Self { k: 0, d: 0, idol: true, statue: false, m: 0, dk: 3, dd: 3 }
     }
 }
 
@@ -47,7 +45,8 @@ pub fn compute(s: &State) -> Option<Res> {
         s.m
     };
     let k2 = 1 - s.k;
-    let d2 = s.d ^ s.o;
+    // Le Disciple lance le glyphe dès que le Kimbo est tapé : +1 PM, il se déplace d'une case
+    let d2 = 1 - s.d;
     let pull_k = s.idol && s.dk > 8;
     let pull_d = s.idol && s.dd > 8;
     let pulls = pull_k as u8 + pull_d as u8;
